@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  peerwire-server:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: peerwire_tcp_server
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONUNBUFFERED=1
