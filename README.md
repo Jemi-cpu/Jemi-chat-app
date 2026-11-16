@@ -1,168 +1,130 @@
-# PeerWire — Real-Time Multi-User TCP Chat Application
+# PeerWire — Real-Time TCP Chat Application
 **CSC 423 Assignment: Socket Programming & Transport Layer Engineering**  
-**Student Name:** Asher  
-**Course Instructor:** Mr. Thomas  
+**Student:** Asher | **Instructor:** Mr. Thomas  
+
+This README provides operational instructions for **installing**, **running**, **testing**, and **deploying** the PeerWire application.
 
 ---
 
-## Deliverables Compliance Matrix
-
-This repository fulfills every deliverable specified in the CSC 423 assignment guidelines:
-
-| Deliverable | Description | Location in Repository |
-| :--- | :--- | :--- |
-| **1. Source Code** | Complete, runnable multi-user TCP socket client & server source code. | [`src/server.py`](src/server.py), [`src/gui_client.py`](src/gui_client.py), [`src/client.py`](src/client.py), [`src/protocol.py`](src/protocol.py) |
-| **2. README** | Instructions for installing, running, testing, and deploying. | This document ([`README.md`](README.md)) |
-| **3. Architecture Diagram** | Detailed visual diagrams showing clients, server, ports, sockets, and cloud topology. | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
-| **4. Transport-Layer Report** | Comprehensive academic report answering all 7 required TCP vs. UDP questions. | [`docs/TRANSPORT_LAYER_REPORT.md`](docs/TRANSPORT_LAYER_REPORT.md) |
-| **5. Deployment Evidence** | Public cloud IP setup, verification guide, and screenshot checklist. | [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) |
-| **6. Demonstration** | Live test suite and multi-user chat walkthrough instructions. | [`tests/test_chat.py`](tests/test_chat.py) & [Demonstration Guide](#live-demonstration-guide) |
-| **7. Reflection** | Analysis of technical challenges faced and transport-layer lessons learned. | [`docs/REFLECTION.md`](docs/REFLECTION.md) |
-
----
-
-## Application Overview: PeerWire
-
-**PeerWire** is a multi-user real-time chat application designed from the ground up using **raw TCP socket programming** (OSI Layer 4). It avoids high-level third-party web frameworks, demonstrating transport-layer principles directly through standard Python sockets (`socket.socket(AF_INET, SOCK_STREAM)`).
-
-### Core Features:
-- **TCP Stream Framing:** Uses a 4-byte big-endian length prefix header (`struct.pack('>I', N)`) to solve TCP byte-stream fragmentation and concatenation.
-- **Concurrent Connections:** Multi-threaded server architecture servicing each client on an independent worker thread.
-- **Real-Time Group Chat:** Room-based public channels (`#general`, `#study-group`, `#announcements`).
-- **One-to-One Private Messaging:** Direct messages (`/msg <username> <message>`) with cryptographic isolation.
-- **Live User Directory:** Active presence tracking with dynamic broadcast updates.
-- **Graceful Teardown:** Handles TCP `FIN` 4-way handshakes and recovers from dirty disconnects (`RST`).
-- **Interactive UI/UX with RGB Color Mixer:** 
-  - Platform Title: **PeerWire**
-  - Default Accent: **Safe Crisp Blue (`#2563EB`)**
-  - **Pullable RGB Sliders:** Interactive Red, Green, and Blue sliders (0–255) with a live color preview swatch, enabling full custom theme personalization.
-  - **Transport-Layer Monitor:** Live header displaying server IP, destination port (`5000`), and the client's local **ephemeral port**.
-
----
-
-## Project Structure
-
-```
-csc423-tcp-chat/
-│
-├── src/                          # Application Source Code
-│   ├── protocol.py               # Framing (4-byte length prefix) & JSON serialization
-│   ├── server.py                 # Multi-threaded TCP Chat Server
-│   ├── gui_client.py             # Desktop Graphical Client (Tkinter + RGB Sliders)
-│   └── client.py                 # Command-line Terminal Client
-│
-├── tests/
-│   └── test_chat.py              # Automated integration tests (Unittest)
-│
-├── deploy/                       # Cloud Deployment Configurations
-│   ├── Dockerfile                # Docker container definition
-│   ├── docker-compose.yml        # Multi-container orchestration
-│   ├── setup_cloud_vm.sh         # 1-Click VM deployment script (AWS/Azure/GCP)
-│   └── peerwire.service          # systemd background daemon service
-│
-├── docs/                         # Assignment Documentation
-│   ├── TRANSPORT_LAYER_REPORT.md # 7-question in-depth transport-layer analysis
-│   ├── ARCHITECTURE.md           # System and cloud architecture diagrams
-│   ├── DEPLOYMENT_GUIDE.md       # Step-by-step cloud deployment guide
-│   └── REFLECTION.md             # Engineering challenges and lessons learned
-│
-└── README.md                     # Master project documentation
-```
-
----
-
-## Installation & Running Locally
+## 1. Installation Instructions
 
 ### Prerequisites
-* Python 3.8 or newer (tested on Python 3.12).
-* **Zero external libraries needed!** PeerWire uses Python standard libraries (`socket`, `threading`, `json`, `struct`, `tkinter`).
+* **Python 3.8 or higher** (Python 3.12 recommended).
+* **Operating System:** Windows, macOS, or Linux.
+* **Dependencies:** None! PeerWire is built entirely with Python standard libraries (`socket`, `threading`, `json`, `struct`, `tkinter`).
 
-### Step 1: Start the PeerWire Server
-Open a terminal and run:
-```bash
-cd csc423-tcp-chat
-python src/server.py 5000
-```
-*The server will start listening on `0.0.0.0:5000`.*
-
-### Step 2: Start Client 1 (Graphical Interface)
-Open a second terminal:
-```bash
-python src/gui_client.py
-```
-* Enter `127.0.0.1`, Port `5000`, Username `Alice`.
-* Click **Connect to PeerWire**.
-
-### Step 3: Start Client 2 (Simultaneous Chat)
-Open a third terminal:
-```bash
-python src/gui_client.py
-```
-* Enter `127.0.0.1`, Port `5000`, Username `Bob`.
-* Click **Connect to PeerWire**.
-* **You now have two live clients communicating over TCP sockets!**
-
-*(Alternatively, run `python src/client.py` if you prefer the terminal CLI interface).*
+### Setup Steps
+1. Navigate to the project directory:
+   ```bash
+   cd "C:\Users\asher\Documents\chat app"
+   ```
+2. Verify Python is available:
+   ```bash
+   python --version
+   ```
 
 ---
 
-## Running Automated Tests
+## 2. Running the Application
 
-PeerWire includes a complete automated test suite verifying socket registration, duplicate username rejection, broadcast messaging, private direct messaging isolation, and graceful disconnection:
+PeerWire consists of a central **TCP Server** and two client options: a **Graphical Desktop App (GUI)** and a **Terminal Client (CLI)**.
+
+### Step 2.1: Start the Server
+Open a terminal and start the server on TCP port `5000`:
+```bash
+python src/server.py 5000
+```
+*The server binds to `0.0.0.0:5000` and waits for incoming client connections.*
+
+### Step 2.2: Launch Client 1 (GUI)
+Open a new terminal window:
+```bash
+python src/gui_client.py
+```
+1. Enter Server Host: `127.0.0.1` (or your cloud server IP).
+2. Enter Port: `5000`.
+3. Enter Username: `Alice`.
+4. Click **Connect to PeerWire**.
+5. *(Optional)* Click **"Customize RGB Theme"** to adjust the pullable Red, Green, and Blue sliders to your preferred accent color.
+
+### Step 2.3: Launch Client 2 (Simultaneous Chat)
+Open another terminal window:
+```bash
+python src/gui_client.py
+```
+1. Enter Server Host: `127.0.0.1`.
+2. Enter Port: `5000`.
+3. Enter Username: `Bob`.
+4. Click **Connect to PeerWire**.
+
+*Alice and Bob can now chat in real-time in `#general`, switch channels, or double-click each other to send private direct messages (`/msg`).*
+
+### Alternative: Running the Terminal (CLI) Client
+If running without a graphical display (e.g. over SSH):
+```bash
+python src/client.py
+```
+
+---
+
+## 3. Testing the Application
+
+An automated integration test suite (`tests/test_chat.py`) is provided to verify all core transport-layer requirements without manual intervention:
 
 ```bash
 python tests/test_chat.py
 ```
 
-**Expected Output:**
-```
-test_01_registration_and_duplicate_rejection ... ok
-test_02_broadcast_messaging_between_peers ... ok
-test_03_private_direct_message_isolation ... ok
-test_04_graceful_disconnect_handling ... ok
-
-----------------------------------------------------------------------
-Ran 4 tests in 2.3s
-
-OK
-```
+### What the Automated Tests Verify:
+1. **TCP Handshake & Registration:** Verifies connection establishment and duplicate username rejection.
+2. **Real-Time Broadcast:** Verifies message delivery across peers in `#general`.
+3. **Private Direct Messaging:** Verifies that `/msg` delivers only to the target recipient and is isolated from other peers.
+4. **Graceful Disconnection:** Verifies socket cleanup and peer presence notifications when a client sends `TCP FIN`.
 
 ---
 
-## Cloud Deployment (AWS / Azure / GCP)
+## 4. Deploying the Application to the Cloud
 
-PeerWire is cloud-ready and can be deployed to an **AWS EC2**, **Azure Virtual Machine**, or **GCP Compute Engine** instance in under 3 minutes:
+PeerWire can be deployed to any major cloud provider (AWS EC2, Microsoft Azure, or GCP Compute Engine) using a standard Ubuntu 22.04 LTS virtual machine.
 
-1. Launch an Ubuntu 22.04 VM (Free Tier).
-2. Configure Cloud Firewall / Security Group:
-   * Allow **Inbound TCP Port 5000** from `0.0.0.0/0`.
-   * Allow **Inbound TCP Port 22 (SSH)**.
-3. SSH into the cloud VM and run:
+### Step 4.1: Cloud VM & Firewall Setup
+1. Launch a cloud instance (e.g., AWS EC2 `t2.micro` Free Tier).
+2. Open **Inbound Cloud Security Group / Firewall Rules**:
+   * **TCP Port 22:** SSH terminal access.
+   * **TCP Port 5000:** PeerWire custom socket port (Source: `0.0.0.0/0`).
+
+### Step 4.2: Automated 1-Click Server Setup
+1. SSH into your cloud VM:
    ```bash
-   git clone <YOUR-REPO-URL> csc423-chat
-   cd csc423-chat
+   ssh -i "your-key.pem" ubuntu@<CLOUD-PUBLIC-IP>
+   ```
+2. Clone or upload your repository and run the setup script:
+   ```bash
    chmod +x deploy/setup_cloud_vm.sh
    ./deploy/setup_cloud_vm.sh
    ```
-4. On any computer, launch `python src/gui_client.py` and point to `<YOUR-CLOUD-PUBLIC-IP>:5000`.
+   *This automatically configures firewall rules, sets up a systemd background daemon (`peerwire.service`), and starts the server.*
 
-*See [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) for full instructions and screenshot evidence guidelines.*
+3. Verify status:
+   ```bash
+   sudo systemctl status peerwire.service
+   ```
 
----
-
-## Live Demonstration Guide
-
-To record your demonstration video or take screenshots for Mr. Thomas:
-1. Launch `python src/server.py` in the background.
-2. Launch two GUI instances side-by-side (`Alice` and `Bob`).
-3. Click **Customize RGB Theme** on one window and drag the Red, Green, and Blue sliders to demonstrate interactive theme customization.
-4. Send a public broadcast message in `#general`.
-5. Double-click Bob's name in Alice's user list and send a private direct message (`/msg Bob hello`).
-6. Point out the top status bar showing the local ephemeral port and active TCP socket state.
-7. Close Bob's window to show Alice receiving the graceful system disconnect alert.
+### Step 4.3: Connecting Remote Clients to the Cloud
+On your local laptop, run:
+```bash
+python src/gui_client.py
+```
+Set **Server Host** to your `<CLOUD-PUBLIC-IP>` and **Port** to `5000`.
 
 ---
 
-## Security Notice
-- No hardcoded secrets, API keys, or credentials are used or committed.
-- Input validation protects against username collisions and oversized frames (capped at 10 MB).
+## Deliverables Index
+
+* **Deliverable 1 (Source code):** `src/` (`server.py`, `gui_client.py`, `client.py`, `protocol.py`).
+* **Deliverable 2 (README):** This document (`README.md`).
+* **Deliverable 3 (Architecture diagram):** `docs/architecture_diagram.png` and `docs/ARCHITECTURE.md`.
+* **Deliverable 4 (Transport-layer report):** `docs/PeerWire_Transport_Layer_Report.docx` and `docs/TRANSPORT_LAYER_REPORT.md`.
+* **Deliverable 5 (Deployment evidence):** `docs/DEPLOYMENT_EVIDENCE.md` and screenshot evidence.
+* **Deliverable 6 (Demonstration):** `docs/DEMONSTRATION_GUIDE.md` (video recording script & cue card).
+* **Deliverable 7 (Reflection):** `docs/PeerWire_Reflection.docx` and `docs/REFLECTION.md`.
