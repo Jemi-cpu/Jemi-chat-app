@@ -28,7 +28,7 @@ OUT = os.path.join(ROOT, "docs", "PeerWire_Technical_Report.docx")
 SUMMARY = os.path.join(ROOT, "experiments", "results", "summary.csv")
 
 STUDENT = "JEMIMAH OMOJO ATTAH"
-MATRIC = "VUG/CSC/XX/XXXX"          # TODO: replace with your matriculation number
+MATRIC = "VUG/CSC/23/8889"
 LECTURER = "MR. THOMAS BAIDOO"
 DATE = "NOVEMBER 2026"
 REPO = "https://github.com/Jemi-cpu/Jemi-chat-app"
