@@ -1,12 +1,12 @@
 # Deliverable 6: Demonstration & Video Presentation Guide
 **Course:** CSC 423 – Computer Networks & Data Communications  
 **Platform:** PeerWire Multi-User TCP Chat  
-**Student:** Asher | **Instructor:** Mr. Thomas  
+**Student:** Jemimah Omojo Attah | **Instructor:** Mr. Thomas Baidoo  
 
 ---
 
 ## Overview
-This document provides the complete, step-by-step cue card and recording script for the **PeerWire Live Demonstration / Video Submission**. It is designed to allow you to showcase every single required feature to Mr. Thomas in approximately **3 minutes**.
+This document provides the complete, step-by-step cue card and recording script for the **PeerWire Live Demonstration / Video Submission**. It is designed to allow you to showcase every single required feature to Mr. Thomas Baidoo in approximately **3 minutes**.
 
 ---
 
@@ -26,7 +26,7 @@ Before hitting record (or presenting live):
 ### Phase 1: Introduction (0:00 – 0:35)
 * **What to Show on Screen:** Title slide or the empty terminal windows.
 * **What to Say:**
-  > *"Hello Mr. Thomas, my name is Asher, and this is my submission for the CSC 423 Socket Programming assignment. Today, I am demonstrating **PeerWire**, a real-time multi-user chat application engineered from the ground up using raw Python TCP sockets at Layer 4.*
+  > *"Hello Mr. Thomas Baidoo, my name is Jemimah Attah, and this is my submission for the CSC 423 Socket Programming assignment. Today, I am demonstrating **PeerWire**, a real-time multi-user chat application engineered from the ground up using raw Python TCP sockets at Layer 4.*
   > 
   > *In this demonstration, I will show: real-time multi-user communication, transport-layer socket demultiplexing via ephemeral ports, private 1-to-1 direct messaging, dynamic RGB theme customization, and graceful connection teardown."*
 

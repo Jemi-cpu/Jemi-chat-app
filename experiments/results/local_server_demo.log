@@ -1,0 +1,29 @@
+2026-11-27 12:09:41 [INFO] (MainThread) PeerWire TCP server listening on 0.0.0.0:5000 (SOCK_STREAM, 4-byte length-prefixed JSON)
+2026-11-27 12:09:42 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:49786 (handshake complete, server side 0.0.0.0:5000)
+2026-11-27 12:09:42 [DEBUG] (127.0.0.1:49786) read 106 bytes -> 3 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:42 [INFO] (127.0.0.1:49786) [REGISTERED] 'framing_demo' on 127.0.0.1:49786
+2026-11-27 12:09:43 [DEBUG] (127.0.0.1:49786) read 2 bytes -> 0 complete frame(s), 2 byte(s) buffered
+2026-11-27 12:09:43 [DEBUG] (127.0.0.1:49786) read 18 bytes -> 0 complete frame(s), 20 byte(s) buffered
+2026-11-27 12:09:44 [DEBUG] (127.0.0.1:49786) read 64 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:44 [INFO] (127.0.0.1:49786) [#general] message from 'framing_demo' (44 chars) to 1 client(s)
+2026-11-27 12:09:45 [DEBUG] (127.0.0.1:49786) read 20 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:45 [WARNING] (127.0.0.1:49786) [MALFORMED] from 127.0.0.1:49786: payload is not valid JSON
+2026-11-27 12:09:45 [DEBUG] (127.0.0.1:49786) read 29 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:46 [DEBUG] (127.0.0.1:49786) read 26 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:46 [INFO] (127.0.0.1:49786) [DISCONNECT] framing_demo @ 127.0.0.1:49786: client sent DISCONNECT
+2026-11-27 12:09:46 [INFO] (127.0.0.1:49786) [CLEANUP] 'framing_demo' removed from registry (0 client(s) remain)
+2026-11-27 12:09:46 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:49787 (handshake complete, server side 0.0.0.0:5000)
+2026-11-27 12:09:46 [DEBUG] (127.0.0.1:49787) read 49 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:46 [INFO] (127.0.0.1:49787) [REGISTERED] 'exp3_quit' on 127.0.0.1:49787
+2026-11-27 12:09:46 [DEBUG] (127.0.0.1:49787) read 62 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:46 [INFO] (127.0.0.1:49787) [#general] message from 'exp3_quit' (22 chars) to 1 client(s)
+2026-11-27 12:09:47 [DEBUG] (127.0.0.1:49787) read 26 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:47 [INFO] (127.0.0.1:49787) [DISCONNECT] exp3_quit @ 127.0.0.1:49787: client sent DISCONNECT
+2026-11-27 12:09:47 [INFO] (127.0.0.1:49787) [CLEANUP] 'exp3_quit' removed from registry (0 client(s) remain)
+2026-11-27 12:09:47 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:49788 (handshake complete, server side 0.0.0.0:5000)
+2026-11-27 12:09:47 [DEBUG] (127.0.0.1:49788) read 50 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:47 [INFO] (127.0.0.1:49788) [REGISTERED] 'exp3_crash' on 127.0.0.1:49788
+2026-11-27 12:09:47 [DEBUG] (127.0.0.1:49788) read 63 bytes -> 1 complete frame(s), 0 byte(s) buffered
+2026-11-27 12:09:47 [INFO] (127.0.0.1:49788) [#general] message from 'exp3_crash' (23 chars) to 1 client(s)
+2026-11-27 12:09:48 [INFO] (127.0.0.1:49788) [DISCONNECT] exp3_crash @ 127.0.0.1:49788: connection reset by peer (RST received)
+2026-11-27 12:09:48 [INFO] (127.0.0.1:49788) [CLEANUP] 'exp3_crash' removed from registry (0 client(s) remain)

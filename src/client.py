@@ -10,6 +10,7 @@ Features:
 - Supports commands: /msg, /join, /users, /help, /quit
 """
 
+import argparse
 import sys
 import os
 import socket
@@ -20,6 +21,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 from protocol import (
+    abort_connection,
     recv_message,
     send_message,
     MSG_REGISTER,
@@ -31,6 +33,8 @@ from protocol import (
     MSG_USER_LIST,
     MSG_SYSTEM,
     MSG_DISCONNECT,
+    MSG_ERROR,
+    MSG_PONG,
 )
 
 
@@ -68,6 +72,12 @@ def receiver_loop(sock: socket.socket, stop_event: threading.Event, my_username:
                 content = msg.get("content")
                 print(f"\n[*] SYSTEM: {content}\n> ", end="", flush=True)
 
+            elif m_type == MSG_ERROR:
+                print(f"\n[!] SERVER ERROR: {msg.get('message')}\n> ", end="", flush=True)
+
+            elif m_type == MSG_PONG:
+                print("\n[*] PONG received\n> ", end="", flush=True)
+
             elif m_type == MSG_USER_LIST:
                 users = msg.get("users", [])
                 user_strs = [f"{u['username']} (Port {u['port']})" for u in users]
@@ -79,13 +89,19 @@ def receiver_loop(sock: socket.socket, stop_event: threading.Event, my_username:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="PeerWire terminal client")
+    parser.add_argument("--host", help="server IP or hostname")
+    parser.add_argument("--port", type=int, help="server TCP port (default 5000)")
+    parser.add_argument("--user", help="username")
+    args = parser.parse_args()
+
     print("=" * 55)
-    print("         PeerWire — Terminal TCP Chat Client        ")
+    print("         PeerWire - Terminal TCP Chat Client        ")
     print("=" * 55)
 
-    host = input("Server Host [127.0.0.1]: ").strip() or "127.0.0.1"
-    port_input = input("Server Port [5000]: ").strip() or "5000"
-    username = input("Enter your username: ").strip()
+    host = args.host or input("Server Host [127.0.0.1]: ").strip() or "127.0.0.1"
+    port_input = str(args.port) if args.port else (input("Server Port [5000]: ").strip() or "5000")
+    username = args.user or input("Enter your username: ").strip()
 
     if not username:
         print("Username cannot be empty.")
@@ -102,8 +118,10 @@ def main():
     try:
         print(f"Connecting to {host}:{port} via TCP (SYN)...")
         sock.connect((host, port))
-        local_port = sock.getsockname()[1]
-        print(f"[+] TCP 3-Way Handshake Successful! Connected on local port: {local_port}")
+        lip, lport = sock.getsockname()[:2]
+        rip, rport = sock.getpeername()[:2]
+        print("[+] TCP three-way handshake complete.")
+        print(f"    4-tuple: local {lip}:{lport} (ephemeral)  <->  server {rip}:{rport}")
     except Exception as e:
         print(f"[-] Could not connect to server: {e}")
         return
@@ -144,8 +162,18 @@ def main():
                 cmd = parts[0].lower()
 
                 if cmd in ["/quit", "/exit"]:
-                    send_message(sock, {"type": MSG_DISCONNECT})
-                    break
+                    break  # finally-block sends DISCONNECT and closes (FIN)
+
+                elif cmd == "/crash":
+                    # Abort the connection: SO_LINGER with timeout 0 makes close()
+                    # discard unsent data and send RST instead of FIN.
+                    stop_event.set()
+                    abort_connection(sock)
+                    print("Connection aborted with RST (/crash).")
+                    return
+
+                elif cmd == "/ping":
+                    send_message(sock, {"type": "PING"})
 
                 elif cmd in ["/msg", "/dm"]:
                     if len(parts) < 3:

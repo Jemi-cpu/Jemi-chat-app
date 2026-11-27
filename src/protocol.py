@@ -1,34 +1,40 @@
 """
-CSC 423 - Transport Layer Protocol Definition
-=============================================
-This module defines the Application Layer Framing Protocol layered on top of TCP.
+CSC 423 - PeerWire Application-Layer Protocol (on top of TCP)
+=============================================================
+TCP gives the application an ordered, reliable BYTE STREAM. It does not keep the
+boundaries between the application's send() calls:
+  - several small messages can arrive together in one recv() (combined), and
+  - one message can be spread over several recv() calls (split).
 
-TCP Stream Framing Design:
--------------------------
-TCP provides a reliable, ordered, but UNSTRUCTURED stream of bytes (Layer 4).
-TCP has NO concept of message boundaries or "packets" at the application layer:
-- Multiple client calls to send() may be coalesced by Nagle's algorithm into a single TCP segment.
-- A single send() call may be fragmented across multiple TCP segments due to the Maximum Segment Size (MSS) / MTU.
+PeerWire therefore frames every message explicitly with a LENGTH PREFIX:
 
-To recover distinct application-layer messages from a continuous TCP stream, this protocol
-employs Length-Prefixed Framing (TLV - Type-Length-Value pattern):
-  [ 4 Bytes: Payload Length (Big-Endian unsigned int) ] + [ N Bytes: JSON-encoded UTF-8 Payload ]
+    +------------------------------+-----------------------------------+
+    | 4 bytes: payload length N    | N bytes: UTF-8 encoded JSON object |
+    | unsigned int, big-endian     | e.g. {"type": "BROADCAST", ...}    |
+    +------------------------------+-----------------------------------+
 
-Header format:
-  - 4 bytes: struct.pack('>I', length) -> allows message sizes up to 4,294,967,295 bytes.
-  - Body: JSON string containing message metadata and content.
+The receiver first collects exactly 4 bytes, reads N from them, then collects
+exactly N more bytes. Whatever is left over belongs to the next message.
+Frames larger than MAX_FRAME_BYTES are refused to protect server memory.
 """
 
 import json
-import struct
+import re
 import socket
-from typing import Optional, Dict, Any
+import struct
+import sys
+from typing import Any, Dict, List, Optional
 
-# Length prefix is a 4-byte unsigned integer in Network Byte Order (Big-Endian: '>')
-HEADER_STRUCT = struct.Struct('>I')
-HEADER_SIZE = HEADER_STRUCT.size  # Exactly 4 bytes
+# Length prefix: 4-byte unsigned int in network byte order (big-endian).
+HEADER_STRUCT = struct.Struct(">I")
+HEADER_SIZE = HEADER_STRUCT.size  # 4 bytes
 
-# Protocol message types
+MAX_FRAME_BYTES = 64 * 1024          # largest accepted JSON payload (64 KiB)
+MAX_MESSAGE_CHARS = 2000             # largest chat message text
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
+ROOM_RE = re.compile(r"^#[a-z0-9_-]{1,24}$")
+
+# Message types
 MSG_REGISTER = "REGISTER"
 MSG_REGISTER_ACK = "REGISTER_ACK"
 MSG_REGISTER_FAIL = "REGISTER_FAIL"
@@ -44,80 +50,122 @@ MSG_PING = "PING"
 MSG_PONG = "PONG"
 
 
+class FrameTooLarge(Exception):
+    """The length prefix announced a payload bigger than MAX_FRAME_BYTES."""
+
+
+class ProtocolError(Exception):
+    """A complete frame arrived but its payload is not a valid PeerWire message."""
+
+
+# ----------------------------------------------------------------------------
+# Encoding
+# ----------------------------------------------------------------------------
+def encode_frame(payload: Dict[str, Any]) -> bytes:
+    """Serialise a dict to JSON and prepend the 4-byte length prefix."""
+    body = json.dumps(payload).encode("utf-8")
+    return HEADER_STRUCT.pack(len(body)) + body
+
+
+# ----------------------------------------------------------------------------
+# Incremental decoding (used by the server)
+# ----------------------------------------------------------------------------
+class FrameDecoder:
+    """Turns arbitrary chunks of a TCP byte stream into complete frames.
+
+    feed() can be given any slice of the stream: half a header, three messages
+    at once, a message cut in the middle of a multi-byte UTF-8 character. It
+    returns every frame that is now complete and keeps the rest buffered.
+    """
+
+    def __init__(self, max_frame: int = MAX_FRAME_BYTES):
+        self.buffer = bytearray()
+        self.max_frame = max_frame
+
+    def feed(self, data: bytes) -> List[bytes]:
+        self.buffer += data
+        frames: List[bytes] = []
+        while len(self.buffer) >= HEADER_SIZE:
+            (length,) = HEADER_STRUCT.unpack_from(self.buffer, 0)
+            if length > self.max_frame:
+                raise FrameTooLarge(f"frame of {length} bytes exceeds {self.max_frame}")
+            if len(self.buffer) < HEADER_SIZE + length:
+                break  # the rest of this frame has not arrived yet
+            frames.append(bytes(self.buffer[HEADER_SIZE:HEADER_SIZE + length]))
+            del self.buffer[:HEADER_SIZE + length]
+        return frames
+
+    @property
+    def buffered(self) -> int:
+        return len(self.buffer)
+
+
+def parse_payload(raw: bytes) -> Dict[str, Any]:
+    """Decode one frame payload. Raises ProtocolError with a readable reason."""
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise ProtocolError("payload is not valid UTF-8")
+    try:
+        obj = json.loads(text)
+    except json.JSONDecodeError:
+        raise ProtocolError("payload is not valid JSON")
+    if not isinstance(obj, dict):
+        raise ProtocolError("payload must be a JSON object")
+    if not isinstance(obj.get("type"), str):
+        raise ProtocolError("missing or invalid 'type' field")
+    return obj
+
+
+# ----------------------------------------------------------------------------
+# Blocking helpers (used by the clients and tests)
+# ----------------------------------------------------------------------------
 def recv_exact(sock: socket.socket, num_bytes: int) -> Optional[bytes]:
-    """
-    Receives exactly `num_bytes` from the TCP socket buffer.
-    
-    Transport-Layer Significance:
-    -----------------------------
-    sock.recv(n) returns BETWEEN 1 and n bytes depending on network buffering,
-    window size, and OS socket buffer availability. It does NOT guarantee
-    returning n bytes in a single call. recv_exact loops until the full expected
-    byte sequence is gathered.
-    
-    Returns:
-        bytes: The exactly requested byte sequence.
-        None: If the peer closed the connection gracefully (EOF / TCP FIN).
-    """
+    """Receive exactly num_bytes. recv(n) may return anything from 1 to n bytes,
+    so we loop. Returns None if the peer closed the connection (FIN) or reset it."""
     chunks = []
-    bytes_recd = 0
-    while bytes_recd < num_bytes:
+    received = 0
+    while received < num_bytes:
         try:
-            chunk = sock.recv(min(num_bytes - bytes_recd, 4096))
-        except (ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            chunk = sock.recv(min(num_bytes - received, 4096))
+        except (ConnectionResetError, ConnectionAbortedError):
             return None
-            
-        if not chunk:
-            # An empty byte response (b'') indicates peer sent TCP FIN (clean close)
+        if not chunk:  # b"" means the peer sent FIN
             return None
         chunks.append(chunk)
-        bytes_recd += len(chunk)
+        received += len(chunk)
     return b"".join(chunks)
 
 
 def send_message(sock: socket.socket, payload: Dict[str, Any]) -> bool:
-    """
-    Serializes a Python dictionary to JSON, prepends a 4-byte length prefix,
-    and sends the complete frame over the TCP socket.
-    
-    Returns:
-        bool: True if sent successfully, False if socket write failed.
-    """
+    """Send one framed message. sendall() keeps writing until every byte is queued."""
     try:
-        raw_body = json.dumps(payload).encode("utf-8")
-        header = HEADER_STRUCT.pack(len(raw_body))
-        # sendall() continues to transmit until all data has been sent or an error occurs
-        sock.sendall(header + raw_body)
+        sock.sendall(encode_frame(payload))
         return True
-    except (BrokenPipeError, ConnectionResetError, OSError):
+    except OSError:  # BrokenPipe, ConnectionReset, send timeout, closed socket
         return False
 
 
 def recv_message(sock: socket.socket) -> Optional[Dict[str, Any]]:
-    """
-    Reads one complete framed message from the TCP socket:
-    1. Reads 4-byte length header.
-    2. Reads payload of that exact length.
-    3. Deserializes JSON into a dictionary.
-    
-    Returns:
-        dict: The parsed message dictionary, or None on EOF/socket error.
-    """
-    header_data = recv_exact(sock, HEADER_SIZE)
-    if not header_data:
+    """Read one complete framed message (blocking). None on EOF or invalid data."""
+    header = recv_exact(sock, HEADER_SIZE)
+    if not header:
         return None
-    
-    (payload_length,) = HEADER_STRUCT.unpack(header_data)
-    
-    # Safety guard against corrupted or excessively large frames (max 10MB)
-    if payload_length > 10 * 1024 * 1024:
-        raise ValueError(f"Message payload exceeds safety limit: {payload_length} bytes")
-        
-    body_data = recv_exact(sock, payload_length)
-    if not body_data:
+    (length,) = HEADER_STRUCT.unpack(header)
+    if length > MAX_FRAME_BYTES:
+        raise FrameTooLarge(f"frame of {length} bytes exceeds {MAX_FRAME_BYTES}")
+    body = recv_exact(sock, length) if length else b""
+    if body is None:
         return None
-        
     try:
-        return json.loads(body_data.decode("utf-8"))
-    except (json.JSONDecodeError, UnicodeDecodeError):
+        return parse_payload(body)
+    except ProtocolError:
         return None
+
+
+def abort_connection(sock: socket.socket) -> None:
+    """Close with SO_LINGER timeout 0: the OS discards unsent data and sends RST
+    instead of the normal FIN handshake (used to demonstrate an abrupt close)."""
+    fmt = "HH" if sys.platform == "win32" else "ii"  # struct linger differs per OS
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack(fmt, 1, 0))
+    sock.close()

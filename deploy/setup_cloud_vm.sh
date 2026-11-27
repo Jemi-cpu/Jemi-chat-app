@@ -30,7 +30,8 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$CURRENT_DIR
-ExecStart=/usr/bin/python3 $CURRENT_DIR/src/server.py 5000
+ExecStart=/usr/bin/python3 $CURRENT_DIR/src/server.py
+EnvironmentFile=-$CURRENT_DIR/.env
 Restart=always
 RestartSec=3
 

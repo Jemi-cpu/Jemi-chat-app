@@ -1,0 +1,5 @@
+timestamp,label,proto,host,count,size_bytes,interval_ms,received,lost,out_of_order,duplicates,rtt_avg_ms,rtt_p95_ms,rtt_max_ms,msgs_per_s,throughput_kbit_s,notes
+2026-11-27T12:09:49,local_baseline,UDP,127.0.0.1,100,64,10,100,0,0,0,0.654,1.216,2.258,91.9,47.0,"Windows 11 loopback, no impairment, 10 ms interval"
+2026-11-27T12:09:51,local_baseline,TCP,127.0.0.1,100,64,10,100,0,0,0,0.466,0.811,1.013,92.8,47.5,"Windows 11 loopback, no impairment, 10 ms interval"
+2026-11-27T12:09:51,local_burst,UDP,127.0.0.1,2000,1000,0.0,2000,0,0,0,0.188,0.374,1.513,16247.3,129978.2,"Windows 11 loopback, 2000 x 1000 B as fast as possible"
+2026-11-27T12:09:52,local_burst,TCP,127.0.0.1,2000,1000,0.0,2000,0,0,0,0.168,0.254,1.929,11816.7,94533.4,"Windows 11 loopback, 2000 x 1000 B as fast as possible"

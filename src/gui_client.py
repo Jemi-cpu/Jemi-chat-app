@@ -37,6 +37,7 @@ from protocol import (
     MSG_USER_LIST,
     MSG_SYSTEM,
     MSG_DISCONNECT,
+    MSG_ERROR,
 )
 
 
@@ -685,6 +686,9 @@ class PeerWireGUI:
         elif msg_type == MSG_SYSTEM:
             content = msg.get("content", "")
             self._append_message("SYSTEM:", f" {content}", "system")
+
+        elif msg_type == MSG_ERROR:
+            self._append_message("ERROR:", f" {msg.get('message', '')}", "system")
 
         elif msg_type == MSG_USER_LIST:
             users = msg.get("users", [])

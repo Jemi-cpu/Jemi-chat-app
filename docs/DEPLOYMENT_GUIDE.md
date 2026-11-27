@@ -85,9 +85,9 @@ Once your cloud instance is live, any client in the world can connect using your
 ### Method A: Using the Graphical App (GUI)
 1. Run `python src/gui_client.py` on your laptop.
 2. Enter:
-   * **Server Host:** `<YOUR-CLOUD-PUBLIC-IP>` (e.g. `54.210.15.82`)
+   * **Server Host:** `<YOUR-CLOUD-PUBLIC-IP>`
    * **Port:** `5000`
-   * **Username:** `Asher`
+   * **Username:** `Alice`
 3. Click **Connect to PeerWire**.
 
 ### Method B: Using the Terminal Client (CLI)
@@ -103,7 +103,7 @@ python src/client.py
 ## Checklist for Capturing Deployment Evidence (Deliverable 5)
 
 To submit 100% complete evidence for Mr. Thomas:
-1. [ ] **Public Connection Details:** Note your Server Public IP and Port (e.g. `54.210.15.82:5000`).
+1. [ ] **Public Connection Details:** Note your Server Public IP and Port.
 2. [ ] **Cloud Dashboard Screenshot:** Take a screenshot of the AWS/Azure/GCP management console showing the active VM and the inbound security rule for Port 5000.
 3. [ ] **Simultaneous Chat Screenshot:** Open two client windows on separate laptops or side-by-side on your desktop connected to `<YOUR-CLOUD-PUBLIC-IP>`, showing:
    * Client 1 (e.g., Alice) typing a message.

@@ -1,0 +1,364 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>PeerWire Study Guide</title>
+<style>
+@page { size: A4; margin: 18mm 17mm 18mm 17mm; }
+body { font-family: Georgia, "Times New Roman", serif; font-size: 11pt; line-height: 1.5; color: #1a1a1a; }
+h1 { font-size: 26pt; margin: 0 0 4px; }
+h2 { font-size: 16pt; border-bottom: 2px solid #1d4ed8; padding-bottom: 3px; margin-top: 26px; page-break-after: avoid; color:#0f172a }
+h3 { font-size: 12.5pt; margin: 16px 0 4px; page-break-after: avoid; color:#1e3a8a }
+p { margin: 5px 0 8px; text-align: justify; }
+code, pre { font-family: Consolas, "Courier New", monospace; font-size: 9.3pt; }
+code { background: #f1f5f9; padding: 0 3px; border-radius: 3px; }
+pre { background: #f1f5f9; border-left: 3px solid #64748b; padding: 8px 10px; white-space: pre-wrap; page-break-inside: avoid; margin: 6px 0 10px; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; font-size: 10pt; page-break-inside: avoid; }
+th, td { border: 1px solid #94a3b8; padding: 4px 6px; vertical-align: top; text-align: left; }
+th { background: #e2e8f0; }
+.box { border: 1.5px solid #1d4ed8; background: #eff6ff; padding: 8px 12px; margin: 10px 0; border-radius: 6px; page-break-inside: avoid; }
+.warn { border-color: #b45309; background: #fffbeb; }
+.qa { margin: 8px 0 10px; page-break-inside: avoid; }
+.qa b.q { display:block; color:#1e3a8a }
+.cover { text-align:center; padding-top: 40px; page-break-after: always; }
+.cover img { width: 240px; }
+.small { font-size: 9.5pt; color: #475569; }
+ol, ul { margin: 4px 0 8px 0; padding-left: 22px; }
+li { margin: 2px 0; }
+.pb { page-break-before: always; }
+.toc li { margin: 1px 0; }
+</style></head><body>
+
+<div class="cover">
+  <img src="../report/assets/veritas_logo.jpg" alt="Veritas University logo">
+  <h1 style="margin-top:24px">PeerWire Study Guide</h1>
+  <p style="text-align:center;font-size:14pt">Everything you need to understand, run, demonstrate and defend<br>your CSC 423 multi-user TCP chat application</p>
+  <p style="text-align:center;margin-top:40px">Jemimah Omojo Attah · CSC 423: Data Communication and Networking<br>Lecturer: Mr. Thomas Baidoo · November 2026</p>
+  <div class="box" style="text-align:left;max-width:520px;margin:50px auto 0">
+    <b>How to use this guide.</b> Read sections 1–4 first: they explain what the project is and the ideas behind it.
+    Section 5 walks through the code. Section 6 is your practical checklist. Sections 7–8 prepare you for the live
+    demonstration and the lecturer's questions. Section 9 lists what is still left to do.
+  </div>
+</div>
+
+<h2>Contents</h2>
+<ol class="toc">
+<li>The project in one page</li><li>What the assignment asks for, and where each item is</li>
+<li>Core networking ideas you must be able to explain</li><li>How PeerWire works end to end</li>
+<li>Code walkthrough, file by file</li><li>Running everything yourself</li>
+<li>The live demonstration, step by step</li><li>Questions the lecturer may ask, with answers</li>
+<li>What is still PENDING and how to finish it</li><li>Glossary</li>
+</ol>
+
+<h2>1. The project in one page</h2>
+<p><b>PeerWire</b> is a chat application. One program, the <b>server</b>, runs on a computer and waits for
+connections on <b>TCP port 5000</b>. Other programs, the <b>clients</b>, connect to it. You have two clients: a
+desktop window (<code>src/gui_client.py</code>) and a terminal version (<code>src/client.py</code>). Each user picks a
+username and can chat in rooms (<code>#general</code>, <code>#study-group</code>, <code>#announcements</code>) or send private
+messages.</p>
+<p>Every client keeps <b>one TCP connection</b> open to the server for the whole session. When Alice types a
+message, her client sends it over her connection; the server receives it and sends a copy over Bob's
+connection. Clients never talk directly to each other; everything goes through the server.</p>
+<p>The point of the assignment is not the chat itself, it is to show you understand the <b>transport layer</b>:
+what a socket is, what ports do, how TCP connections start and end, why TCP needs <b>message framing</b>, and how TCP
+compares with UDP. Your lecturer said a working app without a clear explanation is not enough, so the
+explanations in this guide matter as much as the code.</p>
+<div class="box"><b>The four sentences to remember.</b><br>
+1. The server listens on port 5000; every client gets its own connected socket, identified by (client IP, client port, server IP, 5000).<br>
+2. TCP is a byte stream, so each message is sent as a 4-byte length followed by that many bytes of JSON.<br>
+3. A normal disconnect sends FIN (recv returns empty); a crash sends RST (ConnectionResetError); both lead to the same cleanup.<br>
+4. TCP guarantees order and delivery while the connection is alive; UDP does not, which the comparison tool proves with numbered messages.</div>
+
+<h2>2. What the assignment asks for, and where each item is</h2>
+<table>
+<tr><th style="width:40%">Requirement</th><th>Where / status</th></tr>
+<tr><td>Server accepting many clients</td><td><code>src/server.py</code>, one thread per client. Done.</td></tr>
+<tr><td>Client using TCP</td><td><code>src/gui_client.py</code>, <code>src/client.py</code>. Done.</td></tr>
+<tr><td>Username identification</td><td>REGISTER message, 3–20 letters/digits/underscore, unique. Done.</td></tr>
+<tr><td>Real-time messaging, 2+ users</td><td>BROADCAST to room, pushed instantly. Done.</td></tr>
+<tr><td>Group or one-to-one chat</td><td>Both: rooms and DIRECT messages. Done.</td></tr>
+<tr><td>Connect / disconnect / crash handling</td><td><code>_handle_client</code> in server.py; FIN, RST, keepalive, send timeout. Done.</td></tr>
+<tr><td>Documented message format</td><td><code>docs/protocol.md</code>, report §4.3. Done.</td></tr>
+<tr><td>Explicit framing; split and combined reads shown</td><td><code>FrameDecoder</code> in protocol.py; <code>tools/framing_demo.py</code>; tests. Done.</td></tr>
+<tr><td>Validation, malformed input, logs</td><td>ERROR replies, <code>logs/server.log</code>. Done.</td></tr>
+<tr><td>3 simultaneous clients incl. reconnect</td><td>Automated test 08. Done (manual screenshot pending).</td></tr>
+<tr><td>Seven TCP/UDP questions + framing + failure + captures</td><td>Report §5. Written; capture discussion pending.</td></tr>
+<tr><td>Experiments 1–4 with .pcap files</td><td><code>experiments/run_experiments.sh</code> (Linux). <b>PENDING</b> run.</td></tr>
+<tr><td>UDP sender/receiver, ≥100 numbered messages, baseline + loss</td><td><code>tools/tcp_udp_compare.py</code>. Windows baseline done; Linux loss runs <b>PENDING</b>.</td></tr>
+<tr><td>Cloud deployment (Azure), diagram, steps, evidence, security, cost</td><td><b>PENDING</b> (on hold).</td></tr>
+<tr><td>README, report, diagrams, test log</td><td><code>README.md</code>, <code>docs/PeerWire_Technical_Report.docx</code>, <code>docs/architecture_diagram.png</code>, <code>docs/test-log.md</code>.</td></tr>
+</table>
+
+<h2>3. Core networking ideas you must be able to explain</h2>
+<h3>3.1 Layers in one paragraph</h3>
+<p>The <b>network layer (IP)</b> moves packets from one computer to another using IP addresses, but it is
+"best effort": packets can be lost, duplicated or arrive out of order, and IP does not know which program on the
+computer the data is for. The <b>transport layer</b> (TCP or UDP) adds <b>port numbers</b> so data reaches the right
+<i>program</i> (process-to-process delivery). TCP additionally makes the delivery reliable and ordered.</p>
+
+<h3>3.2 IP address, port, socket</h3>
+<ul>
+<li><b>IP address</b>: identifies a computer (e.g. <code>192.168.0.10</code>, or <code>127.0.0.1</code> for "this same computer", called loopback).</li>
+<li><b>Port</b>: a 16-bit number (0–65535) that identifies a program's endpoint on that computer. PeerWire's server uses <b>5000</b>.</li>
+<li><b>Socket</b>: the object the program uses to send and receive, created with <code>socket.socket(AF_INET, SOCK_STREAM)</code>. <code>AF_INET</code> = IPv4, <code>SOCK_STREAM</code> = TCP. (UDP would be <code>SOCK_DGRAM</code>.)</li>
+<li><b>Ephemeral port</b>: the temporary port the client's operating system picks automatically for the client side (e.g. 52184). You never choose it.</li>
+<li><b>4-tuple</b>: (client IP, client port, server IP, server port). Every TCP connection has a unique 4-tuple. That is how one server port can serve hundreds of clients: the operating system looks at all four numbers to decide which connected socket an arriving packet belongs to.</li>
+</ul>
+
+<h3>3.3 The server's socket calls</h3>
+<pre>socket()   create the TCP socket
+setsockopt(SO_REUSEADDR)  allow quick restart while old connections are in TIME_WAIT
+bind(("0.0.0.0", 5000))   attach it to port 5000 on every network interface
+listen(50)                become a passive "listening" socket (queue of up to 50 pending connections)
+accept()                  wait; returns a NEW socket for each client + the client's (IP, port)</pre>
+<p>Important: the listening socket never carries chat data. Each <code>accept()</code> returns a brand-new socket for
+one client. The client side just does <code>connect((host, 5000))</code>.</p>
+
+<h3>3.4 The three-way handshake (connection start)</h3>
+<pre>Client                                   Server
+  | --- SYN  (seq = x)  -------------------> |   "I want to connect, my starting number is x"
+  | <-- SYN-ACK (seq = y, ack = x+1) ------- |   "OK, mine is y, I expect x+1 next"
+  | --- ACK  (ack = y+1) ------------------> |   "Got it"
+  |        connection ESTABLISHED            |</pre>
+<p>The operating system does this, not your Python code. <code>connect()</code> returns on the client, and
+<code>accept()</code> returns on the server, after it completes. <b>Sequence numbers</b> count bytes; the
+<b>acknowledgement number</b> says "I have received everything up to here, send me this byte next". Wireshark shows
+them as relative numbers (starting from 0) by default.</p>
+
+<h3>3.5 What TCP guarantees</h3>
+<ul>
+<li><b>Reliable</b>: lost segments are retransmitted (after a timeout, or quickly after 3 duplicate ACKs = fast retransmit).</li>
+<li><b>Ordered and no duplicates</b>: the receiver reorders by sequence number.</li>
+<li><b>Error detection</b>: checksum.</li>
+<li><b>Flow control</b>: the receiver advertises a <b>receive window</b> ("I have room for N more bytes") so the sender cannot overrun it.</li>
+<li><b>Congestion control</b>: the sender slows down when the network is overloaded.</li>
+</ul>
+<p>What TCP does <b>not</b> guarantee: message boundaries, a maximum delay, or that the other application actually
+processed the data. After a connection breaks, you cannot know which of your last bytes the other program read.</p>
+
+<h3>3.6 Why framing is needed (very likely question)</h3>
+<p>TCP is a <b>byte stream</b>, like water in a pipe. If Alice's client sends "Hello" then "How are you", the server's
+<code>recv()</code> might return <code>HelloHow are you</code> in one go (combined), or <code>Hel</code> and then
+<code>lo</code> (split). TCP remembers the order of bytes but not where one <code>send()</code> ended. So the
+application must mark message boundaries itself. PeerWire uses a <b>length prefix</b>:</p>
+<pre>[ 00 00 00 0F ] [ {"type":"PING"} ]
+  4 bytes = 15    15 bytes of JSON</pre>
+<p>The receiver keeps a buffer: wait until it has 4 bytes, read the length N, wait until it has N more bytes, cut
+that message out, repeat with whatever is left. <code>struct.pack(">I", n)</code> makes the 4 bytes: <code>&gt;</code> means
+big-endian (network byte order), <code>I</code> means unsigned 32-bit integer. The alternative is newline-delimited JSON
+(one message per line); both are acceptable. UDP does not need framing because each datagram arrives whole or not at all.</p>
+
+<h3>3.7 How connections end: FIN vs RST</h3>
+<table>
+<tr><th>Case</th><th>On the wire</th><th>What the server's code sees</th></tr>
+<tr><td>Normal close (<code>/quit</code>)</td><td>FIN → ACK, then FIN → ACK the other way (four-way close)</td><td><code>recv()</code> returns <code>b""</code> (empty) = end of stream</td></tr>
+<tr><td>Abort (<code>/crash</code>)</td><td>One RST packet</td><td><code>ConnectionResetError</code> exception</td></tr>
+<tr><td>Program killed</td><td>The OS closes the socket: usually FIN</td><td>Looks like a normal close</td></tr>
+<tr><td>Cable pulled / power off</td><td>Nothing at all</td><td>Nothing, until keepalive probes fail or a send times out</td></tr>
+</table>
+<p><b>TIME_WAIT</b>: the side that closes first waits a short time (up to a few minutes) so stray old packets cannot
+confuse a new connection with the same 4-tuple. That is why the server sets <code>SO_REUSEADDR</code>: otherwise
+restarting it straight away could fail with "Address already in use".</p>
+<p><b>/crash and SO_LINGER</b>: setting <code>SO_LINGER</code> to "on, 0 seconds" tells the OS: on close, throw away
+unsent data and send RST instead of FIN. That is how the client simulates a crash on purpose.</p>
+<p><b>Keepalive</b>: if a client disappears silently, TCP would never notice on its own. PeerWire turns on keepalive:
+after 60 s of silence the OS sends small probe packets every 10 s; if they go unanswered the connection is declared
+dead and <code>recv()</code> fails, so the server cleans up.</p>
+
+<h3>3.8 TCP vs UDP</h3>
+<table>
+<tr><th></th><th>TCP</th><th>UDP</th></tr>
+<tr><td>Connection</td><td>Yes (handshake)</td><td>No</td></tr>
+<tr><td>Lost data</td><td>Retransmitted</td><td>Gone; nobody is told</td></tr>
+<tr><td>Order</td><td>Guaranteed</td><td>Not guaranteed</td></tr>
+<tr><td>Boundaries</td><td>None (byte stream)</td><td>Each datagram is one message</td></tr>
+<tr><td>Header</td><td>20–60 bytes</td><td>8 bytes</td></tr>
+<tr><td>Good for</td><td>chat messages, web, files, SSH</td><td>voice/video calls, games, DNS, typing indicators, presence</td></tr>
+</table>
+<p>In chat, the messages must use TCP (losing or reordering a message is unacceptable). <b>Typing indicators and
+online/away presence</b> could use UDP: they are sent often, and if one is lost the next one replaces it.</p>
+
+<h3>3.9 WebSockets (in case you are asked)</h3>
+<p>PeerWire does not use a browser, so there are no WebSockets. If asked: a WebSocket is a protocol that starts as an
+HTTP request and then keeps a single <b>TCP</b> connection open, with its own framing (each frame has a header with
+the payload length). So it is still TCP underneath.</p>
+
+<h2 class="pb">4. How PeerWire works end to end</h2>
+<img src="../architecture_diagram.png" style="width:100%" alt="PeerWire architecture diagram">
+<h3>A message's journey: Alice says "Hi" in #general</h3>
+<ol>
+<li>Alice's GUI builds <code>{"type":"BROADCAST","content":"Hi"}</code>, <code>send_message()</code> turns it into JSON bytes, puts the 4-byte length in front and calls <code>sendall()</code>.</li>
+<li>Alice's OS splits the bytes into TCP segments, numbers them, and sends them to the server's IP, port 5000.</li>
+<li>The server's OS matches the 4-tuple to Alice's connected socket. Alice's worker thread wakes up from <code>recv(4096)</code> with some bytes.</li>
+<li><code>FrameDecoder.feed()</code> adds them to the buffer and returns every complete frame. <code>parse_payload()</code> checks it is valid UTF-8 JSON with a <code>type</code>.</li>
+<li><code>_dispatch_message()</code> sees BROADCAST, checks the content (1–2000 characters), and finds Alice's room.</li>
+<li><code>_broadcast_chat()</code> copies the list of everyone in #general (under the lock), then sends each one <code>{"type":"BROADCAST","sender":"Alice","room":"#general","content":"Hi","timestamp":...}</code>.</li>
+<li>Bob's receiver thread is blocked in <code>recv_message()</code>; it reads 4 bytes, then exactly N bytes, decodes the JSON and the GUI shows the line.</li>
+</ol>
+<h3>Threads</h3>
+<p><b>Server</b>: the main thread loops on <code>accept()</code>; each client gets its own worker thread running
+<code>_handle_client</code>. The shared dictionary <code>clients</code> (username → session) is protected by a lock so two
+threads never change it at the same time. <b>Clients</b>: one thread for the user interface or keyboard, one thread
+that only reads from the socket, so incoming messages appear even while you are typing.</p>
+
+<h2>5. Code walkthrough, file by file</h2>
+<h3>src/protocol.py: the shared "language"</h3>
+<ul>
+<li><code>HEADER_STRUCT = struct.Struct(">I")</code>: the 4-byte length prefix.</li>
+<li><code>MAX_FRAME_BYTES = 64 KiB</code>, <code>MAX_MESSAGE_CHARS = 2000</code>, <code>USERNAME_RE</code>, <code>ROOM_RE</code>: validation limits.</li>
+<li><code>encode_frame(dict)</code>: JSON-encode and add the length prefix.</li>
+<li><code>FrameDecoder.feed(bytes)</code>: the incremental framer used by the server (handles split and combined reads).</li>
+<li><code>parse_payload(bytes)</code>: raises <code>ProtocolError</code> for bad UTF-8, bad JSON, non-object, missing type.</li>
+<li><code>recv_exact()</code> / <code>recv_message()</code>: blocking helpers the clients use: loop until exactly N bytes have arrived (because <code>recv(n)</code> may return fewer than n).</li>
+<li><code>abort_connection(sock)</code>: SO_LINGER 0 + close = RST.</li>
+</ul>
+<h3>src/server.py: the server</h3>
+<ul>
+<li><code>configure_logging()</code>: console + <code>logs/server.log</code>; <code>LOG_LEVEL=DEBUG</code> adds a line per read.</li>
+<li><code>enable_keepalive()</code>, <code>set_send_timeout()</code>: detect dead clients; drop clients that stop reading (5 s).</li>
+<li><code>start()</code> → <code>_accept_loop()</code>: socket, bind, listen, accept, one thread per client.</li>
+<li><code>_handle_client()</code>: the per-connection loop. <code>recv</code> → <code>feed</code> → <code>parse_payload</code> → register or dispatch. Its <code>except</code> branches are the lifecycle: <code>b""</code> = FIN, <code>ConnectionResetError</code> = RST, <code>FrameTooLarge</code> = oversized, anything else = logged but never crashes the server. The <code>finally</code> block always cleans up.</li>
+<li><code>_handle_unregistered()</code>: validates the username, rejects duplicates.</li>
+<li><code>_dispatch_message()</code>: routes BROADCAST, DIRECT, ROOM_JOIN, USER_LIST, PING; unknown types get ERROR.</li>
+<li><code>_send()</code>: sends to one client; if sending fails it shuts that socket down, which makes its own thread exit and clean up.</li>
+<li><code>main()</code>: port from the command line, else <code>PEERWIRE_PORT</code>, else 5000.</li>
+</ul>
+<h3>src/client.py and src/gui_client.py</h3>
+<p>Both: connect, print/show the local and server address, send REGISTER, wait for REGISTER_ACK, start a receiver
+thread, then send what the user types. Terminal commands: <code>/msg user text</code>, <code>/join #room</code>,
+<code>/users</code>, <code>/ping</code>, <code>/quit</code> (FIN), <code>/crash</code> (RST). The GUI also has an RGB colour theme.</p>
+<h3>tools/</h3>
+<ul>
+<li><code>framing_demo.py</code>: sends 3 messages in one write, 1 message in 3 writes, and a malformed one. Proves framing live.</li>
+<li><code>tcp_udp_compare.py</code>: separate TCP and UDP echo test with numbered messages; writes CSV files.</li>
+<li><code>lifecycle_client.py</code>: quit / crash / hang (to be killed) for Experiment 3.</li>
+</ul>
+<h3>tests/</h3>
+<p><code>test_framing.py</code> (7 unit tests on the framer) and <code>test_chat.py</code> (10 tests over real sockets: chat, DMs,
+malformed input, split/combined frames, 3 clients with RST and reconnect, oversized frame, log file). All 17 pass.</p>
+
+<h2>6. Running everything yourself</h2>
+<p>Open the project folder in a terminal (VS Code: Terminal → New Terminal).</p>
+<pre># 1. Tests (should say "Ran 17 tests ... OK")
+python -m unittest discover -s tests -v
+
+# 2. Server
+python src/server.py 5000
+
+# 3. Clients (each in a new terminal)
+python src/gui_client.py                              # Alice
+python src/gui_client.py                              # Bob
+python src/client.py --host 127.0.0.1 --port 5000 --user Carol
+
+# 4. Framing demo: restart the server with debug logging first (PowerShell)
+$env:LOG_LEVEL="DEBUG"; python src/server.py 5000
+python tools/framing_demo.py --port 5000
+
+# 5. TCP vs UDP comparison
+python tools/tcp_udp_compare.py server --host 127.0.0.1 --port 6000
+python tools/tcp_udp_compare.py client --proto udp --count 100 --label test
+python tools/tcp_udp_compare.py client --proto tcp --count 100 --label test
+
+# 6. See sockets (Windows)
+netstat -ano | findstr :5000</pre>
+<p><b>Rebuild the report</b> after new results: <code>python docs/report/build_report.py</code>. Open the .docx in Word,
+click <b>Yes</b> when asked to update fields (this fills the table of contents), then File → Save As → PDF.</p>
+<div class="box warn"><b>Two devices on the same Wi-Fi/hotspot.</b> On the server laptop find its IP with
+<code>ipconfig</code> (IPv4 Address). Allow the port through Windows Firewall (PowerShell as administrator):<br>
+<code>New-NetFirewallRule -DisplayName "PeerWire 5000" -Direction Inbound -Protocol TCP -LocalPort 5000 -Action Allow</code><br>
+On the other device connect to that IP and port 5000.</div>
+
+<h2 class="pb">7. The live demonstration, step by step</h2>
+<p>The lecturer requires: two clients on the <b>deployed</b> server, messages both ways, disconnect and reconnect,
+and your explanation of IP, port, socket and framing. Practise this until it is smooth (about 5 minutes).</p>
+<ol>
+<li><b>Show the server running</b> (on Azure: <code>sudo systemctl status peerwire</code>, <code>sudo journalctl -u peerwire -f</code>). Say: "It listens on 0.0.0.0 port 5000, a TCP socket."</li>
+<li><b>Connect Alice (GUI)</b> to the public IP, port 5000. Point at the server log line <code>[CONNECT] TCP connection from &lt;ip&gt;:&lt;port&gt;</code>. Say: "The handshake is done by the OS; accept() gave the server a new socket for Alice; that number is her ephemeral port."</li>
+<li><b>Connect Bob (terminal)</b>: it prints its 4-tuple. Say: "Same server port, different client port, so a different 4-tuple and a different socket."</li>
+<li><b>Chat both ways</b>, then send a private message with <code>/msg Alice hi</code>.</li>
+<li><b>Explain framing</b>: "Each message is a 4-byte length then JSON, because TCP is a byte stream." Optionally run <code>framing_demo.py</code> and show the <code>read N bytes -> K frames</code> lines.</li>
+<li><b>Disconnect normally</b>: Bob types <code>/quit</code>. Log: "client sent DISCONNECT". Alice sees "Bob has disconnected".</li>
+<li><b>Crash</b>: reconnect Bob, then <code>/crash</code>. Log: "connection reset by peer (RST received)". Say: "RST instead of FIN; the server cleans up in the finally block either way."</li>
+<li><b>Reconnect</b> Bob with the same username: it works because the old session was removed.</li>
+<li><b>Show packet captures</b> (Wireshark) for experiments 1–4 and the comparison table.</li>
+</ol>
+<h3>Live tasks the lecturer may set</h3>
+<table>
+<tr><th style="width:32%">Task</th><th>What to do</th></tr>
+<tr><td>"Change the listening port to 6001"</td><td>Stop the server (Ctrl+C), run <code>python src/server.py 6001</code> (on Azure: edit <code>PEERWIRE_PORT</code> in <code>.env</code>, <code>sudo systemctl restart peerwire</code>, and add an NSG rule for 6001). Connect clients to 6001. Explain the old port now refuses connections.</td></tr>
+<tr><td>"This client cannot connect, diagnose it"</td><td>Read the error. <b>Connection refused</b> = the machine answered with RST: nothing is listening on that port (server down or wrong port). Check with <code>netstat -ano | findstr :5000</code> / <code>ss -tlnp</code>. <b>Timed out</b> = no answer at all: wrong IP, or a firewall/NSG is silently dropping the SYN. Check the IP, the Azure NSG rule, <code>sudo ufw status</code>, and that the server binds 0.0.0.0, not 127.0.0.1. <b>Username already taken</b> = an old session still registered.</td></tr>
+<tr><td>"Explain this packet capture"</td><td>Find SYN / SYN-ACK / ACK (handshake), the PSH,ACK data segments (the first 4 bytes of the payload are the length), the ACKs, then FIN or RST at the end. Read off the source and destination IP and ports, and the seq/ack numbers.</td></tr>
+<tr><td>"Show me framing"</td><td>Run <code>framing_demo.py</code> with the server in DEBUG mode.</td></tr>
+</table>
+
+<h2>8. Questions the lecturer may ask, with answers</h2>
+<div class="qa"><b class="q">Why did you use TCP for chat?</b>Messages must arrive complete, once and in order; TCP does that, and its connection tells the server who is online and when they leave.</div>
+<div class="qa"><b class="q">How can 50 clients all use port 5000?</b>Each connection has a different 4-tuple because each client has a different IP and/or ephemeral port. The OS uses all four numbers to deliver each segment to the right socket. The listening socket only accepts; each accept() creates a new socket.</div>
+<div class="qa"><b class="q">What is the difference between the listening socket and a connected socket?</b>The listening socket is bound to port 5000 and only receives new connection requests. A connected socket is created by accept() for one client and carries that client's data.</div>
+<div class="qa"><b class="q">What does recv(4096) return?</b>Between 1 and 4096 bytes, whatever has arrived, or b"" if the other side closed (FIN). It has nothing to do with message boundaries, which is why we need framing.</div>
+<div class="qa"><b class="q">Why a length prefix and not a newline?</b>The receiver knows exactly how many bytes to wait for, and the payload may contain any bytes. Newline-delimited JSON also works because JSON escapes newlines inside strings. Either is acceptable.</div>
+<div class="qa"><b class="q">What happens if someone sends 10 GB as the length?</b>Anything over 64 KiB is refused: the server replies ERROR "frame too large" and closes only that connection, so it cannot use up the server's memory.</div>
+<div class="qa"><b class="q">What if someone sends invalid JSON?</b>The server replies with ERROR "payload is not valid JSON", logs [MALFORMED], and keeps the connection open. Test 05 checks ten kinds of bad input.</div>
+<div class="qa"><b class="q">How does the server know a client left?</b>recv() returns b"" (FIN), or raises ConnectionResetError (RST). For silent failures, keepalive probes or the 5-second send timeout detect it. Then the finally block removes the user.</div>
+<div class="qa"><b class="q">What is SO_REUSEADDR for?</b>To let the server bind to port 5000 again immediately after a restart, while old connections are still in TIME_WAIT.</div>
+<div class="qa"><b class="q">Why threads? Any problem with them?</b>Each client blocks in recv() on its own thread, so slow clients do not delay others. Shared data needs a lock. Each thread costs memory, so for thousands of clients an event loop (asyncio/selectors) would scale better.</div>
+<div class="qa"><b class="q">What does an ACK actually guarantee?</b>Only that the other machine's TCP stack received the bytes, not that the application read them. After a crash you cannot know what the other program processed.</div>
+<div class="qa"><b class="q">What did your loss experiment show?</b>With 10% loss, UDP lost about 10% of the numbered messages (missing sequence numbers), while TCP delivered all 100 in order but some had RTT spikes of hundreds of milliseconds: the retransmission timeouts. (Fill in your real numbers after running it.)</div>
+<div class="qa"><b class="q">What is the receive window?</b>The amount of free buffer space the receiver advertises in every ACK. The sender may not have more unacknowledged data than that. With window scaling the advertised value is multiplied by 2^scale.</div>
+<div class="qa"><b class="q">Is your deployment encrypted?</b>No, PeerWire uses plain TCP, so anyone on the path could read messages. TLS (Python's ssl module wrapping the socket) would fix it, but needs a certificate; this was left out for the scope of the assignment, and no sensitive data is sent.</div>
+<div class="qa"><b class="q">Why does a UDP datagram not need framing?</b>UDP keeps boundaries: one sendto() is one datagram, delivered whole or not at all.</div>
+
+<h2 class="pb">9. What is still PENDING and how to finish it</h2>
+<p>Everything marked with yellow <b>PENDING</b> in the report needs real evidence. Never fill these in with
+invented numbers or screenshots; the lecturer will check them live.</p>
+<h3>9.1 Linux experiments (packet captures, loss, Experiment 4)</h3>
+<p>Your laptop has no Linux and no Wireshark yet. The easiest option is to run the script on the Azure Ubuntu VM
+once it exists (it only changes that VM's loopback interface, which you own). Alternatively install WSL
+(<code>wsl --install</code> as administrator, then reboot).</p>
+<pre>sudo apt-get install -y tcpdump iproute2 tshark
+bash experiments/run_experiments.sh
+# then copy experiments/results/ back to the laptop, e.g.:
+scp -r azureuser@&lt;IP&gt;:~/Jemi-chat-app/experiments/results ./experiments/</pre>
+<p>Install <b>Wireshark</b> on the laptop (wireshark.org) and open each .pcap. Useful display filters:
+<code>tcp.flags.syn==1</code>, <code>tcp.analysis.retransmission</code>, <code>tcp.flags.fin==1 || tcp.flags.reset==1</code>,
+and add the column <i>Calculated window size</i>. Take screenshots, add arrows/labels (e.g. in Paint), insert them in
+the report, then run <code>python docs/report/build_report.py</code> again; the comparison table fills itself from
+<code>summary.csv</code>.</p>
+<h3>9.2 Azure deployment (when you resume)</h3>
+<ol>
+<li>Create an Azure free account; set a <b>budget alert</b> (Cost Management → Budgets, e.g. $5).</li>
+<li>Create an Ubuntu VM, size <b>B1s</b> (free-tier eligible for 12 months; check the portal says so), SSH key login.</li>
+<li>Network Security Group: allow <b>TCP 5000 from Any</b>; allow <b>TCP 22 from your IP only</b>; nothing else.</li>
+<li>SSH in, <code>git clone https://github.com/Jemi-cpu/Jemi-chat-app</code>, <code>cp .env.example .env</code>, run <code>deploy/setup_cloud_vm.sh</code>.</li>
+<li>Connect two clients from two devices to <code>&lt;public IP&gt;:5000</code>; screenshot both windows and the server log.</li>
+<li>Draw the cloud diagram: clients → Internet → public IP → NSG (5000 allowed, 22 restricted) → VM → systemd service → PeerWire on 0.0.0.0:5000.</li>
+<li>Write report §8: why Azure VM, steps, NSG rules, no TLS justification, env vars, start/restart/stop (<code>systemctl start|restart|stop peerwire</code>), cleanup (delete the resource group), cost statement.</li>
+<li>When finished with the course, <b>delete the resource group</b> so nothing keeps charging.</li>
+</ol>
+<h3>9.3 Other small items</h3>
+<ul>
+<li>Your matriculation number on the cover: in <code>docs/report/build_report.py</code>, change <code>MATRIC = "VUG/CSC/XX/XXXX"</code>, then rebuild.</li>
+<li>Screenshots of 3 local clients (one reconnecting) for the test log.</li>
+<li>Read the report once fully so you can defend every sentence.</li>
+</ul>
+
+<h2>10. Glossary</h2>
+<table>
+<tr><td style="width:24%"><b>ACK</b></td><td>Acknowledgement; says which byte the receiver expects next.</td></tr>
+<tr><td><b>Big-endian</b></td><td>Most significant byte first; "network byte order".</td></tr>
+<tr><td><b>Ephemeral port</b></td><td>Temporary client-side port chosen by the OS.</td></tr>
+<tr><td><b>FIN</b></td><td>Flag meaning "I have finished sending"; orderly close.</td></tr>
+<tr><td><b>Frame</b></td><td>One complete application message as sent on the stream (length + JSON).</td></tr>
+<tr><td><b>Keepalive</b></td><td>Probe packets on an idle connection to check the other side still exists.</td></tr>
+<tr><td><b>Loopback</b></td><td>127.0.0.1, traffic that never leaves the machine.</td></tr>
+<tr><td><b>MSS</b></td><td>Maximum Segment Size, largest TCP payload per segment.</td></tr>
+<tr><td><b>Nagle's algorithm</b></td><td>Combines small writes into fewer segments; disabled with TCP_NODELAY.</td></tr>
+<tr><td><b>netem</b></td><td>Linux tool (part of tc) that adds artificial delay, loss or jitter.</td></tr>
+<tr><td><b>NSG</b></td><td>Azure Network Security Group, the cloud firewall.</td></tr>
+<tr><td><b>pcap</b></td><td>Packet capture file, opened in Wireshark.</td></tr>
+<tr><td><b>RST</b></td><td>Reset flag; aborts a connection immediately.</td></tr>
+<tr><td><b>RTT</b></td><td>Round-trip time: send to reply.</td></tr>
+<tr><td><b>Segment</b></td><td>One TCP packet (header + some bytes of the stream).</td></tr>
+<tr><td><b>SYN</b></td><td>Flag used to open a connection and set the initial sequence number.</td></tr>
+<tr><td><b>TIME_WAIT</b></td><td>Waiting state after closing, to absorb stray old segments.</td></tr>
+<tr><td><b>Window (rwnd)</b></td><td>Receive buffer space the receiver advertises; basis of flow control.</td></tr>
+</table>
+<p class="small">Generated for Jemimah Omojo Attah's CSC 423 project. Source: repository https://github.com/Jemi-cpu/Jemi-chat-app.</p>
+</body></html>
