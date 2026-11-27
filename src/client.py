@@ -44,7 +44,8 @@ def receiver_loop(sock: socket.socket, stop_event: threading.Event, my_username:
         try:
             msg = recv_message(sock)
             if msg is None:
-                print("\n[!] Connection closed by server (TCP FIN). Press Enter to exit.")
+                if not stop_event.is_set():  # the server closed it, not us
+                    print("\n[!] Connection closed by server (TCP FIN). Press Enter to exit.")
                 stop_event.set()
                 break
 
@@ -148,6 +149,7 @@ def main():
     recv_thread.start()
 
     current_room = "#general"
+    aborted = False
 
     try:
         while not stop_event.is_set():
@@ -169,8 +171,9 @@ def main():
                     # discard unsent data and send RST instead of FIN.
                     stop_event.set()
                     abort_connection(sock)
+                    aborted = True
                     print("Connection aborted with RST (/crash).")
-                    return
+                    break
 
                 elif cmd == "/ping":
                     send_message(sock, {"type": "PING"})
@@ -201,7 +204,9 @@ def main():
                     print("  /msg <user> <message> : Send private message")
                     print("  /join <#room>         : Switch channel")
                     print("  /users                : List online users")
-                    print("  /quit                 : Disconnect cleanly\n")
+                    print("  /ping                 : Send PING, expect PONG")
+                    print("  /quit                 : Disconnect cleanly (FIN)")
+                    print("  /crash                : Abort the connection (RST), for Experiment 3\n")
                 else:
                     print(f"[!] Unknown command '{cmd}'. Type /help for options.")
             else:
@@ -213,13 +218,14 @@ def main():
     except (KeyboardInterrupt, EOFError):
         print("\nExiting...")
     finally:
-        stop_event.set()
-        try:
+        if not aborted:
+            stop_event.set()  # tell the receiver thread this close is ours
             send_message(sock, {"type": MSG_DISCONNECT})
-            sock.close()
-        except OSError:
-            pass
-        print("Disconnected cleanly from PeerWire.")
+            try:
+                sock.close()
+            except OSError:
+                pass
+            print("Disconnected cleanly from PeerWire (FIN sent).")
 
 
 if __name__ == "__main__":

@@ -611,6 +611,15 @@ S: {"type": "DIRECT", "sender": "Alice", "target": "Bob", "content": "Hi Bob", "
          "values to deliver it to the correct connected socket, and therefore to the worker thread serving that "
          "user. This is why many clients share the single server port 5000 without confusion, and why the "
          "server's user list shows each user's port.")
+    body("`netstat -ano` taken while three PeerWire clients were connected (27 November 2026) shows this "
+         "directly: one LISTENING socket on port 5000 and three ESTABLISHED server-side sockets, all on port "
+         "5000 and all owned by the same server process (PID 1960), told apart only by the client's ephemeral port:")
+    code("""
+TCP    0.0.0.0:5000      0.0.0.0:0          LISTENING     1960    listening socket
+TCP    127.0.0.1:5000    127.0.0.1:63329    ESTABLISHED   1960    Alice's connection
+TCP    127.0.0.1:5000    127.0.0.1:63330    ESTABLISHED   1960    Bob's connection
+TCP    127.0.0.1:5000    127.0.0.1:63331    ESTABLISHED   1960    Carol's connection
+""")
     h2("5.7 What happens when a client disconnects while using TCP?")
     body("In a **normal disconnect** the client sends DISCONNECT and calls close(); its TCP sends **FIN**, the "
          "server acknowledges it, and the server's next recv() returns an empty result (end of stream). PeerWire "
@@ -730,6 +739,26 @@ S: {"type": "DIRECT", "sender": "Alice", "target": "Bob", "content": "Hi Bob", "
         "**Malformed input:** every bad input receives a specific error and the connection keeps working.",
         "**Framing:** both automated tests and the live demonstration show messages split across reads and combined in one read are handled correctly.",
     ])
+    h2("7.3 Manual Session: Three Clients, Crash, Reconnect and Port Change")
+    body("`tools/session_evidence.py` runs three real terminal clients (Alice, Bob, Carol) against the server "
+         "and records every client's screen output, netstat and the server log "
+         "(`experiments/results/session_evidence.txt`). Alice and Bob exchanged group messages and a private "
+         "message; Carol then aborted with /crash. Alice and Bob kept chatting, Carol reconnected with the same "
+         "username from a new ephemeral port and received Bob's next message live. The server log for the same "
+         "period:")
+    code("""
+[DISCONNECT] Carol @ 127.0.0.1:63331: connection reset by peer (RST received)
+[CLEANUP] 'Carol' removed from registry (2 client(s) remain)
+[DISCONNECT] Alice @ 127.0.0.1:63329: client sent DISCONNECT
+[DISCONNECT] Bob @ 127.0.0.1:63330: client sent DISCONNECT
+[DISCONNECT] Carol @ 127.0.0.1:54639: client sent DISCONNECT
+PeerWire TCP server listening on 0.0.0.0:5050
+[DISCONNECT] Dave @ 127.0.0.1:54649: client sent DISCONNECT
+""")
+    body("The script then restarted the server on port 5050 (`python src/server.py 5050`). A client connected "
+         "to 5050 and received PONG, while a connection to the old port 5000 failed with "
+         "`ConnectionRefusedError [WinError 10061]`: nothing listens there any more, so the operating system "
+         "answers the SYN with RST.")
     body("The complete test log, including manual and cloud tests, is in `docs/test-log.md`.")
     pending("screenshots of two users chatting on the deployed system.")
 

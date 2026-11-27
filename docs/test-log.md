@@ -47,8 +47,37 @@ Packet captures of the same: **PENDING** (Linux, `experiments/run_experiments.sh
 | # | Test | Steps | Expected | Result |
 |---|---|---|---|---|
 | M1 | Two GUI users chat locally | server + 2 × `gui_client.py` (Alice, Bob) | messages both ways, user list updates | PENDING (screenshot) |
-| M2 | Three simultaneous clients, one reconnects | 2 GUI + 1 terminal; close terminal with `/crash`; reconnect | others keep chatting; rejoin works | PENDING (screenshot) |
+| M2 | Three simultaneous clients, one reconnects | `python tools/session_evidence.py`: Alice, Bob, Carol (real `src/client.py` processes); Carol `/crash`; Alice and Bob keep chatting; Carol reconnects | others keep chatting; rejoin works | **Pass** 2026-11-27 (section E). GUI screenshot still to take |
 | M3 | Malformed input by hand | `framing_demo.py` step 3 | ERROR, connection open | Pass (section B) |
-| M4 | Change listening port live | `python src/server.py 5050`, clients to 5050 | connects on new port | PENDING |
+| M4 | Change listening port live | server restarted on 5050; client Dave connects to 5050; connect to 5000 attempted | connects on new port; old port refused | **Pass** 2026-11-27 (section E) |
 | M5 | Cloud access, two users | two machines → `<AZURE-IP>:5000` | messages both ways | PENDING (Azure) |
 | M6 | Cloud: closed port refused | connect to `<AZURE-IP>:6000` | timeout (NSG drops) | PENDING (Azure) |
+
+## E. Three simultaneous clients and live port change (run 2026-11-27, Windows 11 loopback)
+
+Command: `python tools/session_evidence.py`. Full transcripts of every client and the netstat output:
+`experiments/results/session_evidence.txt`; server log: `experiments/results/session_server.log`.
+
+netstat while Alice, Bob and Carol were connected: one listening socket, three connected sockets on the server
+side (same port 5000, different client ephemeral ports):
+
+```
+TCP    0.0.0.0:5000           0.0.0.0:0              LISTENING       1960
+TCP    127.0.0.1:5000         127.0.0.1:63329        ESTABLISHED     1960   (Alice)
+TCP    127.0.0.1:5000         127.0.0.1:63330        ESTABLISHED     1960   (Bob)
+TCP    127.0.0.1:5000         127.0.0.1:63331        ESTABLISHED     1960   (Carol)
+```
+
+Server log for the crash, the reconnect and the clean exits:
+
+```
+[DISCONNECT] Carol @ 127.0.0.1:63331: connection reset by peer (RST received)
+[CLEANUP] 'Carol' removed from registry (2 client(s) remain)
+... Alice: "Bob, can you still see me after Carol crashed?"  Bob: "Yes Alice, still connected"
+... Carol reconnects as 127.0.0.1:54639, receives "Welcome back Carol" live
+[DISCONNECT] Alice @ 127.0.0.1:63329: client sent DISCONNECT
+```
+
+Port change: server restarted with `python src/server.py 5050`; Dave connected to 5050 and received PONG;
+connecting to 5000 gave `ConnectionRefusedError: [WinError 10061] ... actively refused it` (the OS answers the SYN
+with RST because nothing listens there any more).

@@ -20,6 +20,7 @@ Only the Python 3.8+ standard library is needed (`socket`, `threading`, `json`, 
 | `tests/` | 17 automated tests over real TCP sockets |
 | `tools/framing_demo.py` | Shows split / combined / malformed frames live |
 | `tools/tcp_udp_compare.py` | Separate TCP vs UDP comparison (numbered messages, loss, order, RTT) |
+| `tools/session_evidence.py` | Records 3 real clients, crash, reconnect, port change (evidence) |
 | `tools/lifecycle_client.py` | Scripted normal close / RST abort / killed process (Experiment 3) |
 | `experiments/run_experiments.sh` | Runs TCP experiments 1–4 and the comparison on Linux with tcpdump + netem |
 | `experiments/results/` | Raw CSV results, logs and packet captures |

@@ -1,0 +1,34 @@
+2026-11-27 12:25:05 [INFO] (MainThread) PeerWire TCP server listening on 0.0.0.0:5000 (SOCK_STREAM, 4-byte length-prefixed JSON)
+2026-11-27 12:25:05 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:63327 (handshake complete, server side 127.0.0.1:5000)
+2026-11-27 12:25:05 [INFO] (127.0.0.1:63327) [DISCONNECT] unregistered @ 127.0.0.1:63327: client closed the connection (FIN received)
+2026-11-27 12:25:05 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:63329 (handshake complete, server side 127.0.0.1:5000)
+2026-11-27 12:25:05 [INFO] (127.0.0.1:63329) [REGISTERED] 'Alice' on 127.0.0.1:63329
+2026-11-27 12:25:06 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:63330 (handshake complete, server side 127.0.0.1:5000)
+2026-11-27 12:25:06 [INFO] (127.0.0.1:63330) [REGISTERED] 'Bob' on 127.0.0.1:63330
+2026-11-27 12:25:07 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:63331 (handshake complete, server side 127.0.0.1:5000)
+2026-11-27 12:25:07 [INFO] (127.0.0.1:63331) [REGISTERED] 'Carol' on 127.0.0.1:63331
+2026-11-27 12:25:08 [INFO] (127.0.0.1:63329) [#general] message from 'Alice' (34 chars) to 3 client(s)
+2026-11-27 12:25:09 [INFO] (127.0.0.1:63330) [#general] message from 'Bob' (18 chars) to 3 client(s)
+2026-11-27 12:25:09 [INFO] (127.0.0.1:63331) [#general] message from 'Carol' (14 chars) to 3 client(s)
+2026-11-27 12:25:10 [INFO] (127.0.0.1:63329) [DM] 'Alice' -> 'Bob' (38 chars)
+2026-11-27 12:25:10 [INFO] (127.0.0.1:63331) [DISCONNECT] Carol @ 127.0.0.1:63331: connection reset by peer (RST received)
+2026-11-27 12:25:10 [INFO] (127.0.0.1:63331) [CLEANUP] 'Carol' removed from registry (2 client(s) remain)
+2026-11-27 12:25:11 [INFO] (127.0.0.1:63329) [#general] message from 'Alice' (46 chars) to 2 client(s)
+2026-11-27 12:25:12 [INFO] (127.0.0.1:63330) [#general] message from 'Bob' (26 chars) to 2 client(s)
+2026-11-27 12:25:13 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:54639 (handshake complete, server side 127.0.0.1:5000)
+2026-11-27 12:25:13 [INFO] (127.0.0.1:54639) [REGISTERED] 'Carol' on 127.0.0.1:54639
+2026-11-27 12:25:14 [INFO] (127.0.0.1:63330) [#general] message from 'Bob' (18 chars) to 3 client(s)
+2026-11-27 12:25:14 [INFO] (127.0.0.1:54639) [#general] message from 'Carol' (25 chars) to 3 client(s)
+2026-11-27 12:25:15 [INFO] (127.0.0.1:63329) [DISCONNECT] Alice @ 127.0.0.1:63329: client sent DISCONNECT
+2026-11-27 12:25:15 [INFO] (127.0.0.1:63329) [CLEANUP] 'Alice' removed from registry (2 client(s) remain)
+2026-11-27 12:25:16 [INFO] (127.0.0.1:63330) [DISCONNECT] Bob @ 127.0.0.1:63330: client sent DISCONNECT
+2026-11-27 12:25:16 [INFO] (127.0.0.1:63330) [CLEANUP] 'Bob' removed from registry (1 client(s) remain)
+2026-11-27 12:25:16 [INFO] (127.0.0.1:54639) [DISCONNECT] Carol @ 127.0.0.1:54639: client sent DISCONNECT
+2026-11-27 12:25:16 [INFO] (127.0.0.1:54639) [CLEANUP] 'Carol' removed from registry (0 client(s) remain)
+2026-11-27 12:25:17 [INFO] (MainThread) PeerWire TCP server listening on 0.0.0.0:5050 (SOCK_STREAM, 4-byte length-prefixed JSON)
+2026-11-27 12:25:17 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:54648 (handshake complete, server side 127.0.0.1:5050)
+2026-11-27 12:25:17 [INFO] (127.0.0.1:54648) [DISCONNECT] unregistered @ 127.0.0.1:54648: client closed the connection (FIN received)
+2026-11-27 12:25:18 [INFO] (MainThread) [CONNECT] TCP connection from 127.0.0.1:54649 (handshake complete, server side 127.0.0.1:5050)
+2026-11-27 12:25:18 [INFO] (127.0.0.1:54649) [REGISTERED] 'Dave' on 127.0.0.1:54649
+2026-11-27 12:25:21 [INFO] (127.0.0.1:54649) [DISCONNECT] Dave @ 127.0.0.1:54649: client sent DISCONNECT
+2026-11-27 12:25:21 [INFO] (127.0.0.1:54649) [CLEANUP] 'Dave' removed from registry (0 client(s) remain)

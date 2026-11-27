@@ -1,0 +1,147 @@
+PeerWire local session evidence, 2026-11-27 12:25:05, Windows loopback, real src/client.py processes
+
+--- netstat while Alice, Bob and Carol are connected (port 5000) ---
+  TCP    0.0.0.0:5000           0.0.0.0:0              LISTENING       1960
+  TCP    127.0.0.1:5000         127.0.0.1:63329        ESTABLISHED     1960
+  TCP    127.0.0.1:5000         127.0.0.1:63330        ESTABLISHED     1960
+  TCP    127.0.0.1:5000         127.0.0.1:63331        ESTABLISHED     1960
+  TCP    127.0.0.1:63327        127.0.0.1:5000         TIME_WAIT       0
+  TCP    127.0.0.1:63329        127.0.0.1:5000         ESTABLISHED     15276
+  TCP    127.0.0.1:63330        127.0.0.1:5000         ESTABLISHED     14228
+  TCP    127.0.0.1:63331        127.0.0.1:5000         ESTABLISHED     12960
+  TCP    127.0.0.1:64917        127.0.0.1:5000         TIME_WAIT       0
+
+--- netstat after Carol's /crash ---
+  TCP    0.0.0.0:5000           0.0.0.0:0              LISTENING       1960
+  TCP    127.0.0.1:5000         127.0.0.1:63329        ESTABLISHED     1960
+  TCP    127.0.0.1:5000         127.0.0.1:63330        ESTABLISHED     1960
+  TCP    127.0.0.1:63327        127.0.0.1:5000         TIME_WAIT       0
+  TCP    127.0.0.1:63329        127.0.0.1:5000         ESTABLISHED     15276
+  TCP    127.0.0.1:63330        127.0.0.1:5000         ESTABLISHED     14228
+  TCP    127.0.0.1:64917        127.0.0.1:5000         TIME_WAIT       0
+
+--- port change: server restarted on 5050 ---
+  TCP    0.0.0.0:5050           0.0.0.0:0              LISTENING       13124
+  TCP    127.0.0.1:5050         127.0.0.1:54649        ESTABLISHED     13124
+  TCP    127.0.0.1:54648        127.0.0.1:5050         TIME_WAIT       0
+  TCP    127.0.0.1:54649        127.0.0.1:5050         ESTABLISHED     18984
+  TCP    127.0.0.1:63310        127.0.0.1:5050         TIME_WAIT       0
+port 5000: connection refused as expected (ConnectionRefusedError: [WinError 10061] No connection could be made because the target machine actively refused it)
+
+--- client transcripts ---
+
+===== Alice =====
+12:25:05  =======================================================
+12:25:05  PeerWire - Terminal TCP Chat Client
+12:25:05  =======================================================
+12:25:05  Connecting to 127.0.0.1:5000 via TCP (SYN)...
+12:25:05  [+] TCP three-way handshake complete.
+12:25:05  4-tuple: local 127.0.0.1:63329 (ephemeral)  <->  server 127.0.0.1:5000
+12:25:05  [+] Welcome to PeerWire, Alice!
+12:25:05  Type /help for commands or start typing messages.
+12:25:05  [*] SYSTEM: -> Alice joined #general
+12:25:05  [Online Users (1)]: Alice (Port 63329)
+12:25:06  [*] SYSTEM: -> Bob joined #general
+12:25:06  [Online Users (2)]: Alice (Port 63329), Bob (Port 63330)
+12:25:07  [*] SYSTEM: -> Carol joined #general
+12:25:07  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 63331)
+12:25:08  [typed] Hello Bob and Carol, this is Alice
+12:25:09  [12:25:09] [#general] Bob: Hi Alice, Bob here
+12:25:09  [12:25:09] [#general] Carol: Carol here too
+12:25:10  [typed] /msg Bob this is a private message for Bob only
+12:25:10  [12:25:10] [DM to Bob]: this is a private message for Bob only
+12:25:10  [*] SYSTEM: <- Carol has disconnected.
+12:25:10  [Online Users (2)]: Alice (Port 63329), Bob (Port 63330)
+12:25:11  [typed] Bob, can you still see me after Carol crashed?
+12:25:12  [12:25:12] [#general] Bob: Yes Alice, still connected
+12:25:13  [*] SYSTEM: -> Carol joined #general
+12:25:13  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 54639)
+12:25:14  [12:25:14] [#general] Bob: Welcome back Carol
+12:25:14  [12:25:14] [#general] Carol: Thanks Bob, I reconnected
+12:25:15  [typed] /quit
+12:25:15  Disconnected cleanly from PeerWire (FIN sent).
+
+===== Bob =====
+12:25:06  =======================================================
+12:25:06  PeerWire - Terminal TCP Chat Client
+12:25:06  =======================================================
+12:25:06  Connecting to 127.0.0.1:5000 via TCP (SYN)...
+12:25:06  [+] TCP three-way handshake complete.
+12:25:06  4-tuple: local 127.0.0.1:63330 (ephemeral)  <->  server 127.0.0.1:5000
+12:25:06  [+] Welcome to PeerWire, Bob!
+12:25:06  Type /help for commands or start typing messages.
+12:25:06  [*] SYSTEM: -> Bob joined #general
+12:25:06  [Online Users (2)]: Alice (Port 63329), Bob (Port 63330)
+12:25:07  [*] SYSTEM: -> Carol joined #general
+12:25:07  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 63331)
+12:25:08  [12:25:08] [#general] Alice: Hello Bob and Carol, this is Alice
+12:25:09  [typed] Hi Alice, Bob here
+12:25:09  [12:25:09] [#general] Carol: Carol here too
+12:25:10  [12:25:10] [DM from Alice]: this is a private message for Bob only
+12:25:10  [*] SYSTEM: <- Carol has disconnected.
+12:25:10  [Online Users (2)]: Alice (Port 63329), Bob (Port 63330)
+12:25:11  [12:25:11] [#general] Alice: Bob, can you still see me after Carol crashed?
+12:25:12  [typed] Yes Alice, still connected
+12:25:13  [*] SYSTEM: -> Carol joined #general
+12:25:13  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 54639)
+12:25:14  [typed] Welcome back Carol
+12:25:14  [12:25:14] [#general] Carol: Thanks Bob, I reconnected
+12:25:15  [*] SYSTEM: <- Alice has disconnected.
+12:25:15  [Online Users (2)]: Bob (Port 63330), Carol (Port 54639)
+12:25:16  [typed] /quit
+12:25:16  Disconnected cleanly from PeerWire (FIN sent).
+
+===== Carol (first connection, ends with /crash) =====
+12:25:07  =======================================================
+12:25:07  PeerWire - Terminal TCP Chat Client
+12:25:07  =======================================================
+12:25:07  Connecting to 127.0.0.1:5000 via TCP (SYN)...
+12:25:07  [+] TCP three-way handshake complete.
+12:25:07  4-tuple: local 127.0.0.1:63331 (ephemeral)  <->  server 127.0.0.1:5000
+12:25:07  [+] Welcome to PeerWire, Carol!
+12:25:07  Type /help for commands or start typing messages.
+12:25:07  [*] SYSTEM: -> Carol joined #general
+12:25:07  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 63331)
+12:25:08  [12:25:08] [#general] Alice: Hello Bob and Carol, this is Alice
+12:25:09  [12:25:09] [#general] Bob: Hi Alice, Bob here
+12:25:09  [typed] Carol here too
+12:25:10  [typed] /crash
+12:25:10  Connection aborted with RST (/crash).
+
+===== Carol (reconnected) =====
+12:25:13  =======================================================
+12:25:13  PeerWire - Terminal TCP Chat Client
+12:25:13  =======================================================
+12:25:13  Connecting to 127.0.0.1:5000 via TCP (SYN)...
+12:25:13  [+] TCP three-way handshake complete.
+12:25:13  4-tuple: local 127.0.0.1:54639 (ephemeral)  <->  server 127.0.0.1:5000
+12:25:13  [+] Welcome to PeerWire, Carol!
+12:25:13  Type /help for commands or start typing messages.
+12:25:13  [*] SYSTEM: -> Carol joined #general
+12:25:13  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 54639)
+12:25:14  [12:25:14] [#general] Bob: Welcome back Carol
+12:25:14  [typed] Thanks Bob, I reconnected
+12:25:15  [typed] /users
+12:25:15  [Online Users (3)]: Alice (Port 63329), Bob (Port 63330), Carol (Port 54639)
+12:25:15  [*] SYSTEM: <- Alice has disconnected.
+12:25:15  [Online Users (2)]: Bob (Port 63330), Carol (Port 54639)
+12:25:16  [*] SYSTEM: <- Bob has disconnected.
+12:25:16  [Online Users (1)]: Carol (Port 54639)
+12:25:16  [typed] /quit
+12:25:16  Disconnected cleanly from PeerWire (FIN sent).
+
+===== Dave (port 5050) =====
+12:25:18  =======================================================
+12:25:18  PeerWire - Terminal TCP Chat Client
+12:25:18  =======================================================
+12:25:18  Connecting to 127.0.0.1:5050 via TCP (SYN)...
+12:25:18  [+] TCP three-way handshake complete.
+12:25:18  4-tuple: local 127.0.0.1:54649 (ephemeral)  <->  server 127.0.0.1:5050
+12:25:18  [+] Welcome to PeerWire, Dave!
+12:25:18  Type /help for commands or start typing messages.
+12:25:18  [*] SYSTEM: -> Dave joined #general
+12:25:18  [Online Users (1)]: Dave (Port 54649)
+12:25:18  [typed] /ping
+12:25:18  [*] PONG received
+12:25:21  [typed] /quit
+12:25:21  Disconnected cleanly from PeerWire (FIN sent).
